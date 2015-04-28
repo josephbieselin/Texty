@@ -1,0 +1,110 @@
+<!-- JOSEPH BIESELIN - Texty Web App -->
+<!DOCTYPE html>
+<html>
+<head>
+	<title>texty registration</title>
+</head>
+<body>
+
+	<h1>Welcome to texty registration!</h1>
+
+	<!-- Javascript for form validation -->
+	<script>
+
+		function check_registration() {
+
+		var fn = document.getElementById("fn").value;
+		var ln = document.getElementById("ln").value;
+		var email = document.getElementById("email").value;
+		var username = document.getElementById("username").value;
+		var password = document.getElementById("password").value;
+		var password_check = document.getElementById("password_check").value;
+		
+			if (fn.indexOf(",") != -1 || ln.indexOf(",") != -1 || email.indexOf(",") != -1 || username.indexOf(",") != -1 || password.indexOf(",") != -1 || password_check.indexOf(",") != -1) {
+				alert("Can't submit with ',' in any input fields");
+				return false;
+			}
+
+			if (username.indexOf(" ") != -1 || email.indexOf(" ") != -1 ) {
+				alert("Can't submit with spaces in the username or email");
+				return false;
+			}
+
+			if (username.length > 16) {
+				alert("Please limit username to 16 characters");
+				return false;
+			}
+
+			if (password.length > 16) {
+				alert("Please limit password to 16 characters");
+				return false;
+			}
+			
+			if (email.length > 40) {
+				alert("Please limit email to 40 characters");
+				return false;
+			}
+
+			if (fn.length > 20) {
+				alert("Please limit first name to 20 characters");
+				return false;
+			}
+
+			if (ln.length > 20) {
+				alert("Please limit last name to 20 characters");
+				return false;
+			}
+
+			if (password != password_check) {
+				alert("Passwords do not match - try again")
+				return false;
+			}
+			alert('Data being submitted - Click OK to finish registering');
+			return true;
+		}
+
+	</script>
+
+	<!-- ALL inputs are required on this form and the password must be entered twice for confirmation -->
+	<form onsubmit="return check_registration()" method="post" action="register.php">
+	<p>
+		<table>
+			<tr>
+				<td align="right">First name:</td>
+				<td><input type="text" name="firstname" id="fn" required></td>
+			</tr>
+			<tr>
+				<td align="right">Last name:</td>
+				<td><input type="text" name="lastname" id="ln" required></td>
+			</tr>
+			<tr>
+				<td align="right">Email:</td>
+				<td><input type="email" name="email" id="email" required></td>
+			</tr>
+			<tr>
+				<td align="right">Username:</td>
+				<td><input type="text" name="username" id="username" required></td>
+			</tr>
+			<tr>
+				<td align="right">Password:</td>
+				<td><input type="password" name="password" id="password" required></td>
+			</tr>
+			<tr>
+				<td align="right">Re-enter Password:</td>
+				<td><input type="password" name="password_check" id="password_check" required></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td align="right"><input type="submit" value="Register Account"></td>
+			</tr>
+		</table>
+	</p>
+	</form>
+
+	<p align="center" style="font-size:100px"><u><b>texty</b></u></p>
+	<p align="center">Take what you want to say and put it on the internet forever</p>
+
+
+
+</body>
+</html>

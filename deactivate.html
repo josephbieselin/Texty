@@ -1,0 +1,71 @@
+<!-- JOSEPH BIESELIN - Texty Web App -->
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Deactivation</title>
+</head>
+<body>
+
+	<p>We're sorry to see you go... We promise not to keep any incriminating or embarrasing things you might have posted.</p>
+
+	<hr/>
+
+	<script type="text/javascript">
+
+		function check_inputs() {
+
+			var un = document.getElementById("username").value;
+			var email = document.getElementById("email").value;
+			var password = document.getElementById("password").value;
+
+			if(un.indexOf(",") != -1 || email.indexOf(",") != -1 || password.indexOf(",") != -1) {
+				alert("Can't submit with ',' in any input fields");
+				return false;
+			}
+
+			if(un.indexOf(" ") != -1 || email.indexOf(" ") != -1) {
+				alert("Can't submit with spaces in username or email");
+				return false;
+			}
+
+			if (username.length > 16) {
+				alert("Please limit username to 16 characters");
+				return false;
+			}
+
+			if (password.length > 16) {
+				alert("Please limit password to 16 characters");
+				return false;
+			}
+		}
+
+	</script>
+
+	<!-- Enter email and password to remove user from system -->
+	<form onsubmit="return check_inputs()" method="post" action="deactivate.php">
+		<table>
+			<tr>
+				<td align="right">Username:</td>
+				<td><input type="text" name="username" placeholder="Enter the username of your account" size="28" id="username" required><br/></td>
+			</tr>
+			<tr>
+				<td align="right">Email:</td>
+				<td><input type="email" name="email" placeholder="Enter the email of your account" size="28" id="email" required><br/></td>
+			</tr>
+			<tr>
+				<td align="right">Password:</td>
+				<td><input type="password" name="password" placeholder="Enter the password of your account" size="28" id="password" required><br/></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td align="right"><input type="submit" value="Deactivate Account"></td>
+			</tr>
+		</table>
+	</form>
+
+	<hr/>
+
+	<p>In case you change your mind, here's a link back to the <a href="index.html" style="color:rgb(180,150,20)"><u>login page</u></a></p>
+
+</body>
+</html>
