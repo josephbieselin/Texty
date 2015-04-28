@@ -12,7 +12,7 @@
 	define("FOLLOW_FUNC", "follo");			// function name passed to C++ to follow another user
 	define("UNFOLLOW_FUNC", "unfol");		// function name passed to C++ to unfollow another user
 	define("LAST_TEXTY_FUNC", "lastT");		// function name passed to C++ to get a user's most recent texty
-	define("PORT", "13003");				// arbitrary port number (excluding defaults like 80)
+	define("PORT", "13001");				// port number directed to the primary Replication Manager server socket (excluding defaults like 80)
 	define("PHP_MSG_SIZE", 130);			// number of chars PHP will send over a socket
 	define("BUFFSIZE", 8192);				// buffer for reading and writing over network socket
 	define("CPP_FILE", "texty.cpp");		// used for executing the C++ code in PHP

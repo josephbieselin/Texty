@@ -123,7 +123,7 @@ using namespace std;
 #define	BUFFSIZE	8192    // buffer size for reads and writes
 #define SA struct sockaddr
 #define	LISTENQ		1024	// 2nd argument to listen()
-#define PORT_NUM    13003
+#define PORT_NUM    13002	// this RM's port number
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 
 

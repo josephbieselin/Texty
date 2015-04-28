@@ -123,7 +123,7 @@ using namespace std;
 #define	BUFFSIZE	8192    // buffer size for reads and writes
 #define SA struct sockaddr
 #define	LISTENQ		1024	// 2nd argument to listen()
-#define PORT_NUM    13003
+#define PORT_NUM    13001	// this RM's port number
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 
 
@@ -1423,7 +1423,7 @@ int main(int argc, char **argv) {
 		}
 		fprintf(stderr, "Connected\n");
 
-        // We had a connection.  Do whatever our task is.
+        // We have a connection.  Do whatever our task is.
         // ticks = time(NULL);
         // snprintf(buff, sizeof(buff), "%.24s\r\n", ctime(&ticks));
 
