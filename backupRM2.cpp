@@ -5,22 +5,16 @@
 	Programmer:
 	Joseph Bieselin
 
-	Networking code interfaces PHP on user machine with a server running C++ code
-	"Database" emulated with C++ file handling
-	Threading will be used to handle multiple requests
-
+	Networking code interfaces PHP on user machine with a server running C++ code.
+	"Database" emulated with C++ file handling.
+	Threading will be used to handle multiple requests.
+	Replication will be implemented as pseudo-servers running in localhost on separate ports.
 	
-	Structure of all_users./*
-	Texty Web App
-	Twitter Clone
-
-	Programmer:
-	Joseph Bieselin
-
-	Networking code interfaces PHP on user machine with a server running C++ code
-	"Database" emulated with C++ file handling
-	Threading will be used to handle multiple requests
-
+	Each replication manager has their own directory; the name is just a stingified int:
+		primaryRM	-->	"1"
+		backupRM1	-->	"2"
+		backupRM2	--> "3"
+		backupRMX	--> "X+1"
 	
 	Structure of all_users.txt:
 	N,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,'\n'
@@ -96,14 +90,10 @@ using namespace std;
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 // File Handling
 #define MAX_PATH 1000		// maximum file path is probably not more than 1000 chars
-#define USER_DIR "/files"	// directory (relative to CWD) where data on all users for texty will be stored
 
-#define CURRENT_DIR "/var/www/html"	// directory where C++ files and user file directory is stored
-#define FILES_DIR "/var/www/html/files"	// directory path for files
-#define ALL_USERS_TXT "/var/www/html/files/all_users.txt"	// filepath for the master "all_users.txt" file
-
-#define ALL_USERS_FILE "/all_users.txt"	// corresponds to file with every user's info and index number
-#define USER_DATA_FILENAME "all_users.txt"
+#define REP_MAN_DIR		"/var/www/html/3"		// directory path for this replication manager
+#define FILES_DIR 		"/var/www/html/3/files"	// directory path for files
+#define ALL_USERS_TXT	"/var/www/html/3/files/all_users.txt"	// filepath for the master "all_users.txt" file
 
 #define MAX_INDEX_BYTES 10		// maximum number of user indexes that can be used at creation of files: 10 bytes = 999999999 possible indexes for a cstring
 #define MAX_USER_INFO_BYTES 118	// maximum number of bytes each line in all_users.txt will be for each user including: user's data, commas, and '\n' character
@@ -327,10 +317,23 @@ bool file_exists(const char* name)
 // Creates the "files" directory and "all_users.txt" file in that directory if they don't already exist (program exits on any errors in their creation)
 void create_users_database()
 {
+	int status;
+
 	// create a directory where the user info files will go
+	if(!is_dir(REP_MAN_DIR.c_str())) {
+		// If the RM's index directory doesn't exist, create it with RWX permissions for everyone
+		status = mkdir(REP_MAN_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO);
+		if (status == -1) {
+			cout << endl << "ERROR: mkdir could not create RM's directory" << endl;
+			// exit the program if we could not create a directory to store the RM's data
+			exit (1);
+		}
+		chmod(REP_MAN_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO); // give everyone RWX permissions
+	}
+
+	// create the files directory inside of the RM's directory
 	if (!is_dir(FILES_DIR.c_str())) {
 		// If the files directory doesn't exist, create it with RWX permissions for everyone
-		int status;
 		status = mkdir(FILES_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO);
 		if (status == -1) {
 			cout << endl << "ERROR: mkdir could not create files directory" << endl;
@@ -369,22 +372,17 @@ void create_users_database()
 // sets up map<string, User_Dir*> USER_DIRECTORIES to contain all files and directories in the system
 void create_directory_mappings()
 {
-	string files_directory = FILES_DIR;
-	
 	/* Base code taken from StackOverflow URL: http://stackoverflow.com/questions/67273/how-do-you-iterate-through-every-file-directory-recursively-in-standard-c
 		Used to read directory entries in the files directory which stores created user directories
 		These entries are placed into a map structure which is globally available to use
 	*/
 
-	char files_path[MAX_PATH + 1];
-	strcpy(files_path, files_directory.c_str());
-	
 	// create a directory pointer and a directory entry pointer
 	struct dirent *entry;
 	DIR *dp;
 
 	// open the path corresponding the files directory where all the data is stored
-	dp = opendir(files_path);
+	dp = opendir(FILES_DIR.c_str());
 	if (dp == NULL) {
 		// error opening directory so exit program
 		cout << "ERROR: in create_directory_mappings - could not open directory path for 'files'" << endl;
