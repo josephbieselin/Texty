@@ -123,7 +123,9 @@ using namespace std;
 #define	BUFFSIZE	8192    // buffer size for reads and writes
 #define SA struct sockaddr
 #define	LISTENQ		1024	// 2nd argument to listen()
-#define PORT_NUM    13003	// this RM's port number
+#define PRIMARY_PORT	13001	// primary RM's port number
+#define BACKUP_PORT1	13002	// backup server 1's port number
+#define THIS_PORT		13003	// this RM's port number
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 
 
@@ -277,11 +279,11 @@ mutex DIRECTORIES_MUT;	// used when a new user registers or a user deactivates t
 // global All_Users instance to handle locking and unlocking of the master "all_users.txt" file (and opening and closing of it)
 All_Users all_user_file;
 
-// global vector that will store the files that are currently locked
-vector<Lock_File*> locked_files;
-
 // global map variable used to handle all user directory and file data
 map<string, User_Dir*> USER_DIRECTORIES;
+
+// global vector of ports to other servers; the first index is this server's port number
+vector<int> ports_nums;
 /* ------------------------------ GLOBAL VARIABLES -------------------------------------------*/
 
 
@@ -1388,7 +1390,7 @@ int main(int argc, char **argv) {
     servaddr.sin_family      = AF_INET; // Specify the family
     // use any network card present
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port        = htons(PORT_NUM);	// daytime server
+    servaddr.sin_port        = htons(THIS_PORT);	// daytime server
 
     // 3. "Bind" that address object to our listening file descriptor
     if (bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
@@ -1423,9 +1425,7 @@ int main(int argc, char **argv) {
 		}
 		fprintf(stderr, "Connected\n");
 
-        // We had a connection.  Do whatever our task is.
-        // ticks = time(NULL);
-        // snprintf(buff, sizeof(buff), "%.24s\r\n", ctime(&ticks));
+        // We had a connection to primary.  Do whatever our task is.
 
 		/* ---------------------------- HANDLING MESSAGE PASSING OVER NETWORK -------------------------------------*/
 		char php_args[PHP_MSG_SIZE + 1];	// first 5 bytes will be the function to call in C++; remaining message will be passed in user info

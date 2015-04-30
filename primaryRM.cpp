@@ -15,6 +15,14 @@
 		backupRM1	-->	"2"
 		backupRM2	--> "3"
 		backupRMX	--> "X+1"
+
+	Goals set by different stages for replication part of the project:
+		1) Simply handle all data having all data replicated on each "server"
+			- i.e. the primary and all replication managers will write all data sent
+		2) The primary will offload reads to replication managers
+		3) Handle the primary going down
+		4) Time for a new leader! A backup now becomes the primary
+		5) The primary rises from the dead...?
 	
 	Structure of all_users.txt:
 	N,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,'\n'
@@ -123,7 +131,9 @@ using namespace std;
 #define	BUFFSIZE	8192    // buffer size for reads and writes
 #define SA struct sockaddr
 #define	LISTENQ		1024	// 2nd argument to listen()
-#define PORT_NUM    13001	// this RM's port number
+#define THIS_PORT		13001	// this RM's port number
+#define BACKUP_PORT1	13002	// backup server 1's port number
+#define BACKUP_PORT2	13003	// backup server 2's port number
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 
 
@@ -277,11 +287,11 @@ mutex DIRECTORIES_MUT;	// used when a new user registers or a user deactivates t
 // global All_Users instance to handle locking and unlocking of the master "all_users.txt" file (and opening and closing of it)
 All_Users all_user_file;
 
-// global vector that will store the files that are currently locked
-vector<Lock_File*> locked_files;
-
 // global map variable used to handle all user directory and file data
 map<string, User_Dir*> USER_DIRECTORIES;
+
+// global vector of ports to other servers; the first index is this server's port number
+vector<int> ports_nums;
 /* ------------------------------ GLOBAL VARIABLES -------------------------------------------*/
 
 
@@ -399,6 +409,8 @@ void create_directory_mappings()
 	}
 	closedir(dp);
 }
+
+void create_
 
 // Create 4 .txt files in the passed in directory: followees, followers, texts, username
 void create_user_files(const char* dir, const string& un)
@@ -1352,7 +1364,7 @@ void handle_php_args(const string php_args, int connfd)
 	// write the message over the network back to the PHP that opened a socket
 	unsigned int return_message_size = return_str.size();
 	if ( return_message_size != write(connfd, return_str.c_str(), return_str.size()) ) {
-		perror("write to connection failed");
+		perror("write to connection failed for primary");
 	}
 
 	close(connfd);
@@ -1376,7 +1388,7 @@ int main(int argc, char **argv) {
 
     // 1. Create the socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Unable to create a socket");
+        perror("Unable to create a socket for primary");
         exit(1);
     }
 
@@ -1388,18 +1400,18 @@ int main(int argc, char **argv) {
     servaddr.sin_family      = AF_INET; // Specify the family
     // use any network card present
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port        = htons(PORT_NUM);	// daytime server
+    servaddr.sin_port        = htons(THIS_PORT);	// daytime server
 
     // 3. "Bind" that address object to our listening file descriptor
     if (bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
-        perror("Unable to bind port");
+        perror("Unable to bind port for primary");
         exit(2);
     }
 
     // 4. Tell the system that we are going to use this sockect for
     //    listening and request a queue length
     if (listen(listenfd, LISTENQ) == -1) {
-        perror("Unable to listen");
+        perror("Unable to listen for primary");
         exit(3);
     }
     
@@ -1416,16 +1428,14 @@ int main(int argc, char **argv) {
         //    we are talking to.
         //    Last arg is where to put the size of the sockaddr if
         //    we asked for one
-		fprintf(stderr, "Ready to connect.\n");
+		fprintf(stderr, "Ready to connect for primary.\n");
 	        if ((connfd = accept(listenfd, (SA *) NULL, NULL)) == -1) {
-	            perror("accept failed");
+	            perror("accept failed for primary");
 	            exit(4);
 		}
-		fprintf(stderr, "Connected\n");
+		fprintf(stderr, "Connected for primary\n");
 
-        // We have a connection.  Do whatever our task is.
-        // ticks = time(NULL);
-        // snprintf(buff, sizeof(buff), "%.24s\r\n", ctime(&ticks));
+        // We now have a connection.  Do whatever our task is.
 
 		/* ---------------------------- HANDLING MESSAGE PASSING OVER NETWORK -------------------------------------*/
 		char php_args[PHP_MSG_SIZE + 1];	// first 5 bytes will be the function to call in C++; remaining message will be passed in user info
@@ -1438,7 +1448,7 @@ int main(int argc, char **argv) {
 			// handle_php_args also closes the connfd once completed
 
 		} else { // the connection did not read as many bytes as was passed
-			perror("read from connection failed");
+			perror("read from connection failed for primary");
 		}
     }
 
