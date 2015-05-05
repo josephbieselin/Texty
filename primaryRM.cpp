@@ -88,6 +88,9 @@
 #include <time.h>        // time, ctime
 #include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
 #include <netinet/in.h>  // servaddr, INADDR_ANY, htons
+#include <netdb.h>		 // gethostbyname() for IP address conversion
+#include <netinet/in.h>	 // inet_aton
+#include <arpa/inet.h>	 // inet_aton
 #include <mutex>
 #include <thread>
 
@@ -98,6 +101,7 @@ using namespace std;
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 // File Handling
 #define MAX_PATH 1000		// maximum file path is probably not more than 1000 chars
+
 
 #define REP_MAN_DIR		"/var/www/html/1"		// directory path for this replication manager
 #define FILES_DIR 		"/var/www/html/1/files"	// directory path for files
@@ -332,36 +336,36 @@ void create_users_database()
 	int status;
 
 	// create a directory where the user info files will go
-	if(!is_dir(REP_MAN_DIR.c_str())) {
+	if (!is_dir(REP_MAN_DIR)) {
 		// If the RM's index directory doesn't exist, create it with RWX permissions for everyone
-		status = mkdir(REP_MAN_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO);
+		status = mkdir(REP_MAN_DIR, S_IRWXU|S_IRWXG|S_IRWXO);
 		if (status == -1) {
 			cout << endl << "ERROR: mkdir could not create RM's directory" << endl;
 			// exit the program if we could not create a directory to store the RM's data
 			exit (1);
 		}
-		chmod(REP_MAN_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO); // give everyone RWX permissions
+		chmod(REP_MAN_DIR, S_IRWXU|S_IRWXG|S_IRWXO); // give everyone RWX permissions
 	}
 
 	// create the files directory inside of the RM's directory
-	if (!is_dir(FILES_DIR.c_str())) {
+	if (!is_dir(FILES_DIR)) {
 		// If the files directory doesn't exist, create it with RWX permissions for everyone
-		status = mkdir(FILES_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO);
+		status = mkdir(FILES_DIR, S_IRWXU|S_IRWXG|S_IRWXO);
 		if (status == -1) {
 			cout << endl << "ERROR: mkdir could not create files directory" << endl;
 			// exit the program if we could not create a directory to store user info
 			exit(1);
 		}
-		chmod(FILES_DIR.c_str(), S_IRWXU|S_IRWXG|S_IRWXO); // give everyone RWX permissions
+		chmod(FILES_DIR, S_IRWXU|S_IRWXG|S_IRWXO); // give everyone RWX permissions
 	}
 
 	// create a file to store all the user's in our system
-	if (!file_exists(ALL_USERS_TXT.c_str())) {
+	if (!file_exists(ALL_USERS_TXT)) {
 		// If the file doesn't exist, create it
-		ofstream temp_create_file(ALL_USERS_TXT.c_str());
+		ofstream temp_create_file(ALL_USERS_TXT);
 		temp_create_file.close();
 
-		fstream fh(ALL_USERS_TXT.c_str());
+		fstream fh(ALL_USERS_TXT);
 
 		if (!fh.is_open()) {
 			cout << endl << "ERROR: could not open all_users.txt" << endl;
@@ -394,7 +398,7 @@ void create_directory_mappings()
 	DIR *dp;
 
 	// open the path corresponding the files directory where all the data is stored
-	dp = opendir(FILES_DIR.c_str());
+	dp = opendir(FILES_DIR);
 	if (dp == NULL) {
 		// error opening directory so exit program
 		cout << "ERROR: in create_directory_mappings - could not open directory path for 'files'" << endl;
@@ -1226,8 +1230,6 @@ void handle_php_args(const string php_args, int connfd)
 		
 	string return_str;
 
-	size_t i = 0;
-
 	/*
 	This function will also handle sending messages over sockets to other Replication Managers if necessary.
 
@@ -1243,14 +1245,14 @@ void handle_php_args(const string php_args, int connfd)
 	*/
 
 	// if the last char in php_args is not 'c', then we will need to connect to other RMs if data is updated
-	bool replicate_data = (php_args[php_args.length() - 1] != "c");
+	bool replicate_data = (php_args[php_args.length() - 1] != 'c');
 
 	// since there was no 'c' ending char in php_args, we must send data back over the socket to the PHP connection that requested information
 	bool send_data = replicate_data;
 
 	// get all possible values from php_args in order: function,username,email,password,firstname,lastname
-
-	for (i; i < php_args.size(); ++i) {
+	size_t i;
+	for (i = 0; i < php_args.size(); ++i) {
 		if (php_args[i] == ',')
 			break;
 		func_to_call += php_args[i];
@@ -1427,17 +1429,19 @@ void handle_php_args(const string php_args, int connfd)
 		The connected RM will not send any data back because it only needs to update its own data, so connections will be closed immediately after data is sent.
 		*/
 
-		php_args[php_args.length() - 1] = "c"; // set the last char to 'c' so the RM knows it just needs to update its own data
+		// copy php_args so we can set the copy's last char to 'c' indicating to the other RM that a replicated call has been made
+		string php_args_copy = php_args;
+		php_args_copy[php_args_copy.length() - 1] = 'c'; // set the last char to 'c' so the RM knows it just needs to update its own data
 
 		int listenfd, sockfd;
 		struct sockaddr_in rm_addr;
 		struct hostent *host_entry;
-		int addrlen = sizeof(SA);
+		// int addrlen = sizeof(SA);
 
 		// Try and create a socket until it is successful
 		while ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 			// print an error message for every erronous attempt
-			fprintf(stderr, "Unable to create socket for data replication.\n");
+			cerr << "Unable to create socket for data replication.\n";
 		}
 
 		// for each port (excluding this RM's port), attempt to send the php_args to each RM
@@ -1452,25 +1456,26 @@ void handle_php_args(const string php_args, int connfd)
 				host_entry = gethostbyname(HOST_NAME); // host_entry->h_addr contains any old IP address from the host
 
 				if (!host_entry) {
-					fprint(stderr, "Unable to get host info for %s\n", HOST_NAME);
+					cerr << "Unable to get host info for " << HOST_NAME << endl;;
 					// couldn't get the host info so go to the next port
 					continue;
 				}
 				// load the socket's s_addr with the IP of host
-				if (inet_aton(host_entry->h_addr, &rm_addr.sin_addr.s_addr) == 0) {
-					fprintf(stderr, "Unable to load the IP address into s_addr.\n");
+				// if (inet_aton(host_entry->h_addr, &rm_addr.sin_addr.s_addr) == 0) {
+				if (inet_aton(host_entry->h_addr, &rm_addr.sin_addr) == 0) {
+					cerr << "Unable to load the IP address into s_addr.\n";
 				}
 				rm_addr.sin_port = htons(i); // one of the other RMs ports
-				if ((sockfd = connect(listenfd, (SA *) rm_addr, sizeof(rm_addr))) == -1) {
+				if ((sockfd = connect(listenfd, (SA *) &rm_addr, sizeof(rm_addr))) == -1) {
 					// a connection could not be made which means the RM is probably down
-					fprintf(stderr, "Unable to connect to the Replication Manager on Port %d.\n", i);
+					cerr << "Unable to connect to the Replication Manager on Port " << i << endl;
 					// since the connection failed, continue onto the next RM port number
 					continue;
 				}
 
 				// now data can be written over sockfd to the other RM
-				if ( PHP_MSG_SIZE != write(sockfd, php_args.c_str(), PHP_MSG_SIZE) ) {
-					fprintf(stderr, "Write to connection failed for Port %d.\n", i);
+				if ( PHP_MSG_SIZE != write(sockfd, php_args_copy.c_str(), PHP_MSG_SIZE) ) {
+					cerr << "Write to connection failed for Port " << i << endl;
 				}
 
 				// close the socket connection to the other RM so the next RM can be connected to
