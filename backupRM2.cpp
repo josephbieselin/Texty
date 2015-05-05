@@ -123,9 +123,11 @@ using namespace std;
 #define	BUFFSIZE	8192    // buffer size for reads and writes
 #define SA struct sockaddr
 #define	LISTENQ		1024	// 2nd argument to listen()
-#define PRIMARY_PORT	13001	// primary RM's port number
-#define BACKUP_PORT1	13002	// backup server 1's port number
-#define THIS_PORT		13003	// this RM's port number
+#define START_PORT	13001	// smallest port number in use by the RMs
+#define END_PORT	13003	// largest port number in use by the RMs
+
+#define THIS_PORT	13003	// this RM's port number
+#define HOST_NAME	"localhost"	// the host's name that will relate to an IP address to connect to
 /* ---------------------------------- CONSTANTS ----------------------------------------------*/
 
 
@@ -283,7 +285,7 @@ All_Users all_user_file;
 map<string, User_Dir*> USER_DIRECTORIES;
 
 // global vector of ports to other servers; the first index is this server's port number
-vector<int> ports_nums;
+vector<int> port_nums;
 /* ------------------------------ GLOBAL VARIABLES -------------------------------------------*/
 
 
@@ -400,6 +402,14 @@ void create_directory_mappings()
 		}
 	}
 	closedir(dp);
+}
+
+// sets up the ports_nums vector to contain the int values of all port numbers in use by this application (in our case its a linear set of values starting at 13001)
+void create_ports_vector()
+{
+	for (size_t port_num = START_PORT; port_num <= END_PORT; ++port_num) {
+		port_nums.push_back(port_num);
+	}
 }
 
 // Create 4 .txt files in the passed in directory: followees, followers, texts, username
@@ -1208,10 +1218,31 @@ void handle_php_args(const string php_args, int connfd)
 		
 	string return_str;
 
+	size_t i = 0;
+
+	/*
+	This function will also handle sending messages over sockets to other Replication Managers if necessary.
+
+	If the last char in php_args is 'c', this implies another RM has made a connection with us.
+	The connection was made because the php_args string passed had contents that called a function which altered data.
+	This alteration of data could happen if a new user registers, a user deactivates an account, a user submits a new text, etc...
+	Because data has been updated in the files, all RMs need to be made aware of this.
+	To make all the RMs aware of the change, we must connect to them via sockets.
+	On these sockets, we will pass php_args with the last char being set to 'c' indicating replication must happen.
+
+	Replication calls only happen when a change in data happens; reads do not require replicated calls.
+	For example, a user attempting to login only requires the reading of a file which the RM connected to should handle by itself.
+	*/
+
+	// if the last char in php_args is not 'c', then we will need to connect to other RMs if data is updated
+	bool replicate_data = (php_args[php_args.length() - 1] != "c");
+
+	// since there was no 'c' ending char in php_args, we must send data back over the socket to the PHP connection that requested information
+	bool send_data = replicate_data;
+
 	// get all possible values from php_args in order: function,username,email,password,firstname,lastname
 
-	size_t i;
-	for (i = 0; i < php_args.size(); ++i) {
+	for (i; i < php_args.size(); ++i) {
 		if (php_args[i] == ',')
 			break;
 		func_to_call += php_args[i];
@@ -1251,6 +1282,9 @@ void handle_php_args(const string php_args, int connfd)
 		lk.lock();
 
 		return_str = register_user(un, email, pw, fn, ln); // returns username,email,firstname,lastname if successful
+		
+		if (return_str == ",")
+			replicate_data = false; // if a ',' was returned, registration wasn't successful so do not replicate
 	}
 
 	else if (func_to_call == DEACTIVATE_STR) {
@@ -1260,6 +1294,8 @@ void handle_php_args(const string php_args, int connfd)
 		if (!user_exists(all_user_file.fh, 3, un, email, pw)) {
 			all_user_file.close_file();
 			return_str = ",";
+
+			replicate_data = false; // if the user does not exist, do not replicate trying to remove the user in other RMs
 		} else {
 			// the user exists, so remove them from all_users.txt by creating a temp file without them, then renaming that temp file to all_users.txt
 			char temp_filename[MAX_PATH + 1];
@@ -1289,6 +1325,8 @@ void handle_php_args(const string php_args, int connfd)
 			all_user_file.close_file();
 			return_str = un; // returns username
 		}
+
+		replicate_data = false; // login is a read operation so we do not need to replicate a read in other RMs
 	}
 
 	else if (func_to_call == SEARCH_STR) {
@@ -1297,6 +1335,8 @@ void handle_php_args(const string php_args, int connfd)
 		string search_string; // will contain a username or email to search for
 		search_string = ( (un != "") ? un : email);
 		return_str = search(search_string); // returns username,email,firstname,lastname if user is found
+
+		replicate_data = false; // search is a read operation so we do not need to replicate a read in other RMs
 	}
 
 	else if (func_to_call == DISPLAY_STR) {
@@ -1311,6 +1351,8 @@ void handle_php_args(const string php_args, int connfd)
 			then there will be a newline character;
 			every texty the user has sent, each followed by a newline character (newest texty first);
 		*/
+
+		replicate_data = false; // display page is a read operation so we do not need to replicate a read in other RMs
 	}
 
 	else if (func_to_call == TEXTY_STR) {
@@ -1319,6 +1361,8 @@ void handle_php_args(const string php_args, int connfd)
 			return_str = un;
 		} else {
 			return_str = ",";
+
+			replicate_data = false; // if submitting a text was unsuccessful, do not replicate
 		}
 	}
 
@@ -1326,6 +1370,8 @@ void handle_php_args(const string php_args, int connfd)
 		lk.lock();
 
 		return_str = get_last_texty(un);
+
+		replicate_data = false; // getting the last text is a read operation so we do not need to replicate a read in other RMs
 	}
 
 	else if (func_to_call == FOLLOW_STR) {
@@ -1334,6 +1380,8 @@ void handle_php_args(const string php_args, int connfd)
 			return_str = un;
 		} else {
 			return_str = ",";
+
+			replicate_data = false; // if following another user was unsuccessful, do not replicate
 		}
 	}
 
@@ -1343,18 +1391,87 @@ void handle_php_args(const string php_args, int connfd)
 			return_str = un;
 		} else {
 			return_str = ",";
+
+			replicate_data = false; // if unfollowing another user was unsuccessful, do not replicate
 		}
 	}
 
 	else { // if the string does not match somehow, there was an error so return a comma
 		cout << "Error in php_args: function to call was a bad value" << endl;
 		return_str = ",";
+
+		replicate_data = false; // something went wrong so DEFINITELY do not replicate
 	}
 
-	// write the message over the network back to the PHP that opened a socket
-	unsigned int return_message_size = return_str.size();
-	if ( return_message_size != write(connfd, return_str.c_str(), return_str.size()) ) {
-		perror("write to connection failed");
+	// if we must send our return_str back over a socket, write to the connection file descriptor
+	if (send_data) {
+		// write the message over the network back to the PHP that opened a socket
+		unsigned int return_message_size = return_str.size();
+		if ( return_message_size != write(connfd, return_str.c_str(), return_str.size()) ) {
+			perror("write to connection failed for primary\n");
+		}
+	}
+
+	// if we want to replicate data, we must connect to all other RMs that are not us and send the php_args string
+	if (replicate_data) {
+		/*
+		For each other RM, create a connection and send the php_args with 'c' as the last char to indicate its a replication call.
+		The connected RM will not send any data back because it only needs to update its own data, so connections will be closed immediately after data is sent.
+		*/
+
+		php_args[php_args.length() - 1] = "c"; // set the last char to 'c' so the RM knows it just needs to update its own data
+
+		int listenfd, sockfd;
+		struct sockaddr_in rm_addr;
+		struct hostent *host_entry;
+		int addrlen = sizeof(SA);
+
+		// Try and create a socket until it is successful
+		while ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+			// print an error message for every erronous attempt
+			fprintf(stderr, "Unable to create socket for data replication.\n");
+		}
+
+		// for each port (excluding this RM's port), attempt to send the php_args to each RM
+		for (size_t i = START_PORT; i <= END_PORT; ++i) {
+			// no need to talk to ourselves, that'd be kind of weird
+			if (i != THIS_PORT) {
+				// zero out the replication manager's socket address
+				memset(&rm_addr, 0, sizeof(rm_addr));
+				rm_addr.sin_family = AF_INET; // address family: AF_INET (from linux man pages)
+
+				// get info about the host we're trying to connect to
+				host_entry = gethostbyname(HOST_NAME); // host_entry->h_addr contains any old IP address from the host
+
+				if (!host_entry) {
+					fprint(stderr, "Unable to get host info for %s\n", HOST_NAME);
+					// couldn't get the host info so go to the next port
+					continue;
+				}
+				// load the socket's s_addr with the IP of host
+				if (inet_aton(host_entry->h_addr, &rm_addr.sin_addr.s_addr) == 0) {
+					fprintf(stderr, "Unable to load the IP address into s_addr.\n");
+				}
+				rm_addr.sin_port = htons(i); // one of the other RMs ports
+				if ((sockfd = connect(listenfd, (SA *) rm_addr, sizeof(rm_addr))) == -1) {
+					// a connection could not be made which means the RM is probably down
+					fprintf(stderr, "Unable to connect to the Replication Manager on Port %d.\n", i);
+					// since the connection failed, continue onto the next RM port number
+					continue;
+				}
+
+				// now data can be written over sockfd to the other RM
+				if ( PHP_MSG_SIZE != write(sockfd, php_args.c_str(), PHP_MSG_SIZE) ) {
+					fprintf(stderr, "Write to connection failed for Port %d.\n", i);
+				}
+
+				// close the socket connection to the other RM so the next RM can be connected to
+				close(sockfd);
+			}
+		}
+
+		// done sending replicate data commands to other RMs so close this RM's socket
+		close(listenfd);
 	}
 
 	close(connfd);

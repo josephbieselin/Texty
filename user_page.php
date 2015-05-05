@@ -292,9 +292,9 @@
 		*/
 		function talk_to_server_display($un) {
 			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.PORT, $errno, $errstr, 25);
+			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
 			if(!$socket_fd) {
-				echo 'localhost:'.PORT . "<br/>";
+				echo 'localhost port error' . "<br/>";
 				echo "$errstr ($errno)";
 				exit(1);
 			}
@@ -314,9 +314,9 @@
 		// same as above talk to server but this one handles a user sending a texty
 		function talk_to_server_text($texty, $un) {
 			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.PORT, $errno, $errstr, 25);
+			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
 			if(!$socket_fd) {
-				echo 'localhost:'.PORT . "<br/>";
+				echo 'localhost port error' . "<br/>";
 				echo "$errstr ($errno)";
 				exit(1);
 			}
@@ -336,9 +336,9 @@
 		// same as above talk to server but this one handles getting a user's most recent texty
 		function talk_to_server_recent_texty($un) {
 			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.PORT, $errno, $errstr, 25);
+			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
 			if(!$socket_fd) {
-				echo 'localhost:'.PORT . "<br/>";
+				echo 'localhost port error' . "<br/>";
 				echo "$errstr ($errno)";
 				exit(1);
 			}

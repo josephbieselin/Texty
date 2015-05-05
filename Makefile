@@ -1,10 +1,34 @@
 FLAGS = -g -Wall -std=c++11
-all: texty clean
 
-texty: texty.cpp
-	g++ ${FLAGS} -o texty texty.cpp -pthread -Wl,--no-as-needed
+all: r1 r2 r3 clean
+
+r1: primaryRM.cpp
+	g++ ${FLAGS} -o rm1 primaryRM.cpp -pthread -Wl,--no-as-needed
+
+r2: backupRM1.cpp
+	g++ ${FLAGS} -o rm2 backupRM1.cpp -pthread -Wl,--no-as-needed
+
+r3: backupRM2.cpp
+	g++ ${FLAGS} -o rm3 backupRM2.cpp -pthread -Wl,--no-as-needed
 
 clean:
+	# if [ -d "/var/www/html/1" ];then	\
+	# 	rm -r /var/www/html/1;			\
+
+	# if [ -d "/var/www/html/2" ];then	\
+	# 	rm -r /var/www/html/2;			\
+	# if [ -d "/var/www/html/3" ];then	\
+	# 	rm -r /var/www/html/3;			\
+	# fi
+
+
+
+#all: texty clean
+
+#texty: texty.cpp
+#	g++ ${FLAGS} -o texty texty.cpp -pthread -Wl,--no-as-needed
+
+#clean:
 	# if [ -d "/var/www/html/files" ];then	\
 	# 	rm -r /var/www/html/files;			\
 	# fi

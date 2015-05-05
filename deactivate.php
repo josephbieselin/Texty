@@ -47,9 +47,9 @@
 		*/
 		function talk_to_server($username, $email, $password) {
 			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.PORT, $errno, $errstr, 25);
+			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
 			if(!$socket_fd) {
-				echo 'localhost:'.PORT . "<br/>";
+				echo 'localhost port error' . "<br/>";
 				echo "$errstr ($errno)";
 				exit(1);
 			}
