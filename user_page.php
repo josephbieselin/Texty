@@ -291,13 +291,11 @@
 		attempts to received a message back from the server which will indicate success or failure of logging in
 		*/
 		function talk_to_server_display($un) {
-			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
-			if(!$socket_fd) {
-				echo 'localhost port error' . "<br/>";
-				echo "$errstr ($errno)";
-				exit(1);
-			}
+			// loop until a socket connection is created
+			do {
+				$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
+			} while (!$socket_fd);
+
 			// $message is the string that will be sent over the open socket to the server
 			// It will be in the format: function_name,username,email,password,firstname,lastname
 			// String will delimit different data fields by commas, even if a data field is empty
@@ -313,13 +311,12 @@
 
 		// same as above talk to server but this one handles a user sending a texty
 		function talk_to_server_text($texty, $un) {
-			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
-			if(!$socket_fd) {
-				echo 'localhost port error' . "<br/>";
-				echo "$errstr ($errno)";
-				exit(1);
-			}
+			// loop until a socket connection is created
+			do {
+				$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
+			} while (!$socket_fd);
+			
+
 			// $message is the string that will be sent over the open socket to the server
 			// It will be in the format: function_name,username,email,password,firstname,lastname
 			// String will delimit different data fields by commas, even if a data field is empty
@@ -335,13 +332,11 @@
 
 		// same as above talk to server but this one handles getting a user's most recent texty
 		function talk_to_server_recent_texty($un) {
-			//exec(CPP_FILE $arr); // run the C++ program to start a connection; all output goes into $arr
-			$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
-			if(!$socket_fd) {
-				echo 'localhost port error' . "<br/>";
-				echo "$errstr ($errno)";
-				exit(1);
-			}
+			// loop until a socket connection is created
+			do {
+				$socket_fd = stream_socket_client('localhost:'.get_random_port(), $errno, $errstr, 25);
+			} while (!$socket_fd);
+			
 			// $message is the string that will be sent over the open socket to the server
 			// It will be in the format: function_name,username,email,password,firstname,lastname
 			// String will delimit different data fields by commas, even if a data field is empty

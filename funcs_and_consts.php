@@ -21,7 +21,7 @@
 	define("MIN_PORT", 13001);
 	define("MAX_PORT", 13003);
 
-	// returns a random number from MIN_PORT to MAX_PORT
+	// returns a stringified random number from MIN_PORT to MAX_PORT
 	function get_random_port() {
 		$port_num = rand(MIN_PORT, MAX_PORT);
 		return "{$port_num}";
