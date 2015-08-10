@@ -1,0 +1,79 @@
+// Some tester code I was using
+
+    vector<thread> threads;
+
+    char php_args[PHP_MSG_SIZE + 1];
+	string m1, m2, m3, m4, m5, m6, m7;
+	// append a new thread to the threads vector and join it so that it finishes execution
+
+	unique_lock<mutex> lk(PHP_ARGS_MUT, defer_lock);
+
+
+	lk.lock();
+	strcpy(php_args, "searc,lexA,ml@gmail.com,password1,mitch,lee,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//string args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m1] { handle_php_args(php_args, my_cwd, files_cwd, m1); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "follo,lork,lexA,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m2] { handle_php_args(php_args, my_cwd, files_cwd, m2); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "follo,lork,joebee,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m3] { handle_php_args(php_args, my_cwd, files_cwd, m3); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "deact,doge,dog@verizon.net,password1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m4] { handle_php_args(php_args, my_cwd, files_cwd, m4); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "texty,lexA,my first texty in 4e,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m5] { handle_php_args(php_args, my_cwd, files_cwd, m5); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "follo,lexA,joebee,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m6] { handle_php_args(php_args, my_cwd, files_cwd, m6); } ) );
+	lk.unlock();
+
+	lk.lock();
+	strcpy(php_args, "displ,joebee,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,");
+	//args = php_args;
+	threads.push_back( thread( [php_args, my_cwd, files_cwd, &m7] { handle_php_args(php_args, my_cwd, files_cwd, m7); } ) );
+	lk.unlock();
+
+
+
+	//handle_php_args(php_args, my_cwd, files_cwd, message_to_return);
+	for (auto& t : threads) t.join();
+
+	cout << "message 1: " << m1 << endl; // 
+	cout << "message 2: " << m2 << endl; // 
+	cout << "message 3: " << m3 << endl; // 
+	cout << "message 4: " << m4 << endl; // 
+	cout << "message 5: " << m5 << endl; // 
+	cout << "message 6: " << m6 << endl; // 
+	cout << "message 7: " << m7 << endl << endl; // 
+
+	for (auto& i : USER_DIRECTORIES) {
+		cout << "key: " << i.first << " - index: " << i.second->user_index << " - dir_path: " << i.second->dir_path << ", files: " << i.second->followees.filename << " " << i.second->followers.filename << " " << i.second->texts.filename << endl << endl;
+	}
+
+
+	//chdir(my_cwd);
+	// get the return message's size to confirm the correct number of bytes are written to the file stream
+	//unsigned int return_message_size = message_to_return.size();
+
+
+
+
+}
